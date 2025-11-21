@@ -11,22 +11,18 @@ import seaborn as sns
 import os
 
 # ============================================================
-# 0. PATH FIX untuk GitHub Actions (WAJIB)
+# 0. PATH FIX untuk GitHub Actions
 # ============================================================
-# Lokasi file ini
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Naik 1 folder ke root project
-ROOT_DIR = os.path.abspath(os.path.join(BASE_DIR, ".."))
-
 print("BASE_DIR:", BASE_DIR)
-print("ROOT_DIR:", ROOT_DIR)
+
+# File dataset berada di folder yang sama dengan modelling.py → preprocessing/
+dataset_path = os.path.join(BASE_DIR, "preprocessing", "processed_dataset.csv")
+print("DATASET PATH:", dataset_path)
 
 # ============================================================
 # 1. LOAD DATASET
 # ============================================================
-dataset_path = os.path.join(ROOT_DIR, "preprocessing", "processed_dataset.csv")
-
 df = pd.read_csv(dataset_path)
 
 X = df.drop(columns="PlacementStatus")
@@ -42,7 +38,7 @@ scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
-# Resampling
+# Resampling untuk handling imbalance
 smote_tomek = SMOTETomek(random_state=32)
 X_train_res, y_train_res = smote_tomek.fit_resample(X_train_scaled, y_train)
 
@@ -52,8 +48,12 @@ X_train_res, y_train_res = smote_tomek.fit_resample(X_train_scaled, y_train)
 mlflow.set_tracking_uri("file:./mlruns")
 mlflow.set_experiment("Placement_Model_Automated")
 
+# Buat folder artifacts untuk menyimpan gambar (wajib untuk GitHub Actions)
+artifacts_dir = os.path.join(BASE_DIR, "artifacts")
+os.makedirs(artifacts_dir, exist_ok=True)
+
 # ============================================================
-# 3. TRAINING MODEL (INSIDE MLflow RUN)
+# 3. TRAINING MODEL
 # ============================================================
 with mlflow.start_run():
 
@@ -68,13 +68,13 @@ with mlflow.start_run():
         random_state=42
     )
 
-    # Training
+    # Train the model
     model_rf.fit(X_train_res, y_train_res)
     pred = model_rf.predict(X_test_scaled)
 
-    # ========================================================
+    # ============================================================
     # 4. EVALUATION
-    # ========================================================
+    # ============================================================
     acc = accuracy_score(y_test, pred)
     print("Accuracy:", acc)
     print(classification_report(y_test, pred))
@@ -91,21 +91,16 @@ with mlflow.start_run():
     plt.ylabel("True")
     plt.tight_layout()
 
-    # ========================================================
-    #  SAFE FOLDER ARTIFACTS (fix error /C:)
-    # ========================================================
-    artifacts_dir = os.path.join(ROOT_DIR, "artifacts")
-    os.makedirs(artifacts_dir, exist_ok=True)
-
+    # Save confusion matrix image
     cm_path = os.path.join(artifacts_dir, "confusion_matrix_rf.png")
     plt.savefig(cm_path)
 
-    # Log artifact
+    # Log artifact to MLflow
     mlflow.log_artifact(cm_path)
 
-    # ========================================================
-    # 5. SAVE ML MODEL TO MLflow
-    # ========================================================
+    # ============================================================
+    # 5. SAVE MODEL
+    # ============================================================
     mlflow.sklearn.log_model(
         sk_model=model_rf,
         artifact_path="model"
