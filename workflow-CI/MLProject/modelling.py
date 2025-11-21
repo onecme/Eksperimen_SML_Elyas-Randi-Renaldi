@@ -6,23 +6,21 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from imblearn.combine import SMOTETomek
+import matplotlib
+matplotlib.use("Agg")  # FIX: no display for GitHub Actions
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-# ============================================================
-# 0. PATH FIX untuk GitHub Actions
-# ============================================================
+# ==========================================
+# 0. SAFE BASE DIRECTORY
+# ==========================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-print("BASE_DIR:", BASE_DIR)
 
-# File dataset berada di folder yang sama dengan modelling.py → preprocessing/
-dataset_path = os.path.join(BASE_DIR, "preprocessing", "processed_dataset.csv")
-print("DATASET PATH:", dataset_path)
-
-# ============================================================
+# ==========================================
 # 1. LOAD DATASET
-# ============================================================
+# ==========================================
+dataset_path = os.path.join(BASE_DIR, "preprocessing", "processed_dataset.csv")
 df = pd.read_csv(dataset_path)
 
 X = df.drop(columns="PlacementStatus")
@@ -38,25 +36,21 @@ scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
-# Resampling untuk handling imbalance
+# Resampling
 smote_tomek = SMOTETomek(random_state=32)
 X_train_res, y_train_res = smote_tomek.fit_resample(X_train_scaled, y_train)
 
-# ============================================================
+# ==========================================
 # 2. MLflow Setup
-# ============================================================
-mlflow.set_tracking_uri("file:./mlruns")
+# ==========================================
+mlflow_dir = os.path.join(BASE_DIR, "mlruns")
+mlflow.set_tracking_uri(f"file:{mlflow_dir}")
 mlflow.set_experiment("Placement_Model_Automated")
 
-# Buat folder artifacts untuk menyimpan gambar (wajib untuk GitHub Actions)
-artifacts_dir = os.path.join(BASE_DIR, "artifacts")
-os.makedirs(artifacts_dir, exist_ok=True)
-
-# ============================================================
+# ==========================================
 # 3. TRAINING MODEL
-# ============================================================
+# ==========================================
 with mlflow.start_run():
-
     model_rf = RandomForestClassifier(
         n_estimators=300,
         max_depth=7,
@@ -68,13 +62,13 @@ with mlflow.start_run():
         random_state=42
     )
 
-    # Train the model
+    # Train model
     model_rf.fit(X_train_res, y_train_res)
     pred = model_rf.predict(X_test_scaled)
 
-    # ============================================================
+    # ==========================================
     # 4. EVALUATION
-    # ============================================================
+    # ==========================================
     acc = accuracy_score(y_test, pred)
     print("Accuracy:", acc)
     print(classification_report(y_test, pred))
@@ -83,7 +77,6 @@ with mlflow.start_run():
 
     # Confusion Matrix
     cm = confusion_matrix(y_test, pred)
-
     plt.figure(figsize=(7, 5))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
     plt.title("Confusion Matrix - Random Forest")
@@ -91,19 +84,23 @@ with mlflow.start_run():
     plt.ylabel("True")
     plt.tight_layout()
 
-    # Save confusion matrix image
+    # ==========================================
+    # 5. ARTIFACT FOLDER (SAFE)
+    # ==========================================
+    artifacts_dir = os.path.join(BASE_DIR, "artifacts")
+    os.makedirs(artifacts_dir, exist_ok=True)
+
     cm_path = os.path.join(artifacts_dir, "confusion_matrix_rf.png")
     plt.savefig(cm_path)
 
-    # Log artifact to MLflow
     mlflow.log_artifact(cm_path)
 
-    # ============================================================
-    # 5. SAVE MODEL
-    # ============================================================
+    # ==========================================
+    # 6. SAVE MODEL
+    # ==========================================
     mlflow.sklearn.log_model(
         sk_model=model_rf,
         artifact_path="model"
     )
 
-print("Model training & MLflow logging complete.")
+print("Model training & logging complete.")
