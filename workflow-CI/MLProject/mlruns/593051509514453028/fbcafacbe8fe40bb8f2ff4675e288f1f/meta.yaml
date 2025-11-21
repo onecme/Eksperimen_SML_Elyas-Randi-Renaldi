@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/sistemMachienlearning/workflow-CI/MLProject/mlruns/593051509514453028/fbcafacbe8fe40bb8f2ff4675e288f1f/artifacts
+end_time: 1763467739717
+entry_point_name: ''
+experiment_id: '593051509514453028'
+lifecycle_stage: active
+run_id: fbcafacbe8fe40bb8f2ff4675e288f1f
+run_name: hilarious-toad-108
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763467734324
+status: 3
+tags: []
+user_id: Administrator

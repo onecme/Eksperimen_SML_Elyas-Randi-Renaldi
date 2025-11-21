@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/sistemMachienlearning/workflow-CI/MLProject/mlruns/0/8c859baa37e54ea29a96c5724b962aea/artifacts
+end_time: 1763467740313
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 8c859baa37e54ea29a96c5724b962aea
+run_name: nosy-midge-611
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763467728106
+status: 3
+tags: []
+user_id: Administrator

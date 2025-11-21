@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/sistemMachienlearning/mlruns/973148076705445591/7b45cd1819234477813e7c110da2ffb0/artifacts
+end_time: 1763467643975
+entry_point_name: ''
+experiment_id: '973148076705445591'
+lifecycle_stage: active
+run_id: 7b45cd1819234477813e7c110da2ffb0
+run_name: persistent-tern-657
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763467639830
+status: 3
+tags: []
+user_id: Administrator

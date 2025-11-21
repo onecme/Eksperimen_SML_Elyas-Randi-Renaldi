@@ -1,0 +1,10 @@
+artifact_location: file:///C:/sistemMachienlearning/mlruns/973148076705445591/models/m-4eecb2a0a90b4b10a92cb81e07cbc538/artifacts
+creation_timestamp: 1763467334526
+experiment_id: '973148076705445591'
+last_updated_timestamp: 1763467339651
+model_id: m-4eecb2a0a90b4b10a92cb81e07cbc538
+model_type: null
+name: model
+source_run_id: cba67a2d6d5f48d79683901925f6275f
+status: 2
+status_message: null

@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/sistemMachienlearning/mlruns/973148076705445591/bf2aa03c0c084692989f9b66cac59d48/artifacts
+end_time: 1763467639706
+entry_point_name: ''
+experiment_id: '973148076705445591'
+lifecycle_stage: active
+run_id: bf2aa03c0c084692989f9b66cac59d48
+run_name: spiffy-pig-155
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763467631103
+status: 3
+tags: []
+user_id: Administrator

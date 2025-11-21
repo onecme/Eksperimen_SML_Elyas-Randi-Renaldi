@@ -1,0 +1,10 @@
+artifact_location: file:///C:/sistemMachienlearning/workflow-CI/MLProject/mlruns/593051509514453028/models/m-c0c4f12d97494ef3b187bae764f6f533/artifacts
+creation_timestamp: 1763467734772
+experiment_id: '593051509514453028'
+last_updated_timestamp: 1763467739685
+model_id: m-c0c4f12d97494ef3b187bae764f6f533
+model_type: null
+name: model
+source_run_id: fbcafacbe8fe40bb8f2ff4675e288f1f
+status: 2
+status_message: null

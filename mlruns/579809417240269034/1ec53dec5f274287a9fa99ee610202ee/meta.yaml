@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/sistemMachienlearning/mlruns/579809417240269034/1ec53dec5f274287a9fa99ee610202ee/artifacts
+end_time: 1763385999650
+entry_point_name: ''
+experiment_id: '579809417240269034'
+lifecycle_stage: active
+run_id: 1ec53dec5f274287a9fa99ee610202ee
+run_name: thundering-panda-171
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1763385991601
+status: 3
+tags: []
+user_id: Administrator
