@@ -66,7 +66,9 @@ with mlflow.start_run():
 
     mlflow.log_metric("accuracy", acc)
 
+    # ------------------------------------------
     # Confusion Matrix
+    # ------------------------------------------
     cm = confusion_matrix(y_test, pred)
     plt.figure(figsize=(7, 5))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
@@ -75,11 +77,15 @@ with mlflow.start_run():
     plt.ylabel("True")
     plt.tight_layout()
 
-    # Save CM
-    cm_path = "confusion_matrix_rf.png"
+    # ------------------------------------------
+    # SAFE folder untuk artifact (mencegah error /C:)
+    # ------------------------------------------
+    os.makedirs("artifacts", exist_ok=True)
+
+    cm_path = "artifacts/confusion_matrix_rf.png"
     plt.savefig(cm_path)
 
-    # Log Artifact
+    # Log artifact dengan aman
     mlflow.log_artifact(cm_path)
 
     # ==========================================
