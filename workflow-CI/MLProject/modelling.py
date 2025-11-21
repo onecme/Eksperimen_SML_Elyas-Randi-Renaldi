@@ -8,6 +8,7 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from imblearn.combine import SMOTETomek
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 
 # ==============================================
 # 1. LOAD DATASET
@@ -32,59 +33,60 @@ smote_tomek = SMOTETomek(random_state=32)
 X_train_res, y_train_res = smote_tomek.fit_resample(X_train_scaled, y_train)
 
 # ==============================================
-# 2. MLflow Setup → TANPA start_run()
+# 2. MLflow Setup
 # ==============================================
 mlflow.set_tracking_uri("file:./mlruns")
 mlflow.set_experiment("Placement_Model_Automated")
-mlflow.autolog()   # Biarkan MLflow Project yang membuat run
+mlflow.autolog()
 
 # ==============================================
-# 3. TRAINING MODEL
+# 3. TRAINING MODEL + MLflow RUN
 # ==============================================
-model_rf = RandomForestClassifier(
-    n_estimators=300,
-    max_depth=7,
-    min_samples_split=5,
-    min_samples_leaf=3,
-    max_features='sqrt',
-    class_weight='balanced',
-    bootstrap=True,
-    random_state=42
-)
+with mlflow.start_run():
 
-model_rf.fit(X_train_res, y_train_res)
-pred = model_rf.predict(X_test_scaled)
+    model_rf = RandomForestClassifier(
+        n_estimators=300,
+        max_depth=7,
+        min_samples_split=5,
+        min_samples_leaf=3,
+        max_features='sqrt',
+        class_weight='balanced',
+        bootstrap=True,
+        random_state=42
+    )
 
-# ==============================================
-# 4. EVALUASI
-# ==============================================
-acc = accuracy_score(y_test, pred)
-print("Accuracy:", acc)
-print(classification_report(y_test, pred))
+    model_rf.fit(X_train_res, y_train_res)
+    pred = model_rf.predict(X_test_scaled)
 
-# Log metric manual (opsional)
-mlflow.log_metric("accuracy_manual", acc)
+    # ==============================================
+    # 4. EVALUASI
+    # ==============================================
+    acc = accuracy_score(y_test, pred)
+    print("Accuracy:", acc)
+    print(classification_report(y_test, pred))
 
-# Confusion Matrix
-cm = confusion_matrix(y_test, pred)
-plt.figure(figsize=(7,5))
-sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
-plt.title("Confusion Matrix - Random Forest")
-plt.xlabel("Predicted")
-plt.ylabel("True")
-plt.tight_layout()
+    # Log manual metric
+    mlflow.log_metric("accuracy_manual", acc)
 
-# Save Confusion Matrix
-cm_path = "confusion_matrix_rf.png"
-plt.savefig(cm_path)
+    # Confusion matrix
+    cm = confusion_matrix(y_test, pred)
 
-# Log artifact to MLflow
-mlflow.log_artifact(cm_path)
+    plt.figure(figsize=(7,5))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+    plt.title("Confusion Matrix - Random Forest")
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+    plt.tight_layout()
 
-# ==============================================
-# 5. LOG MODEL 
-# ==============================================
-mlflow.sklearn.log_model(
-    sk_model=model_rf,
-    artifact_path="model"
-)
+    # Save confusion matrix (relative path → AMAN)
+    cm_path = "confusion_matrix_rf.png"
+    plt.savefig(cm_path)
+
+    # Log artifact safely
+    mlflow.log_artifact(cm_path)
+
+    # Log model
+    mlflow.sklearn.log_model(
+        sk_model=model_rf,
+        artifact_path="model"
+    )
