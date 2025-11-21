@@ -3,7 +3,7 @@ matplotlib==3.10.7
 mlflow==3.6.0
 mlflow_skinny==3.6.0
 mlflow_tracing==3.6.0
-numpy==2.3.5
+numpy==1.26.4
 pandas==2.3.3
 scikit_learn==1.7.2
 seaborn==0.13.2
