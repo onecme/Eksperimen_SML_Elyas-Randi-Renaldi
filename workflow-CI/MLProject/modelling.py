@@ -10,9 +10,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-# ==============================================
+# ==========================================
 # 1. LOAD DATASET
-# ==============================================
+# ==========================================
 df = pd.read_csv("preprocessing/processed_dataset.csv")
 
 X = df.drop(columns="PlacementStatus")
@@ -32,17 +32,16 @@ X_test_scaled = scaler.transform(X_test)
 smote_tomek = SMOTETomek(random_state=32)
 X_train_res, y_train_res = smote_tomek.fit_resample(X_train_scaled, y_train)
 
-# ==============================================
-# 2. MLflow Setup (tanpa autolog)
-# ==============================================
-mlflow.set_tracking_uri("file:./mlruns")
+# ==========================================
+# 2. MLflow Setup (Manual Run)
+# ==========================================
+mlflow.set_tracking_uri("file:./mlruns")  # aman di GitHub Actions
 mlflow.set_experiment("Placement_Model_Automated")
 
+# ==========================================
+# 3. TRAINING MODEL (INSIDE MLflow RUN)
+# ==========================================
 with mlflow.start_run():
-
-    # ==============================================
-    # 3. TRAINING MODEL
-    # ==============================================
     model_rf = RandomForestClassifier(
         n_estimators=300,
         max_depth=7,
@@ -54,24 +53,21 @@ with mlflow.start_run():
         random_state=42
     )
 
+    # Train model
     model_rf.fit(X_train_res, y_train_res)
     pred = model_rf.predict(X_test_scaled)
 
-    # ==============================================
-    # 4. EVALUASI
-    # ==============================================
+    # ==========================================
+    # 4. EVALUATION
+    # ==========================================
     acc = accuracy_score(y_test, pred)
     print("Accuracy:", acc)
     print(classification_report(y_test, pred))
 
-    # Log metric manual
     mlflow.log_metric("accuracy", acc)
 
-    # ==============================================
-    # 5. CONFUSION MATRIX
-    # ==============================================
+    # Confusion Matrix
     cm = confusion_matrix(y_test, pred)
-
     plt.figure(figsize=(7, 5))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
     plt.title("Confusion Matrix - Random Forest")
@@ -79,19 +75,19 @@ with mlflow.start_run():
     plt.ylabel("True")
     plt.tight_layout()
 
-    # Buat folder output lokal
-    os.makedirs("artifacts", exist_ok=True)
-
-    cm_path = "artifacts/confusion_matrix_rf.png"
+    # Save CM
+    cm_path = "confusion_matrix_rf.png"
     plt.savefig(cm_path)
 
-    # Log ke MLflow
+    # Log Artifact
     mlflow.log_artifact(cm_path)
 
-    # ==============================================
-    # 6. LOG MODEL 
-    # ==============================================
+    # ==========================================
+    # 5. SAVE MODEL
+    # ==========================================
     mlflow.sklearn.log_model(
         sk_model=model_rf,
-        artifact_path="model"
+        artifact_path="model",
     )
+
+print("Model training & logging complete.")
