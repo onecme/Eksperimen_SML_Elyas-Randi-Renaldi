@@ -10,10 +10,24 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-# ==========================================
+# ============================================================
+# 0. PATH FIX untuk GitHub Actions (WAJIB)
+# ============================================================
+# Lokasi file ini
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Naik 1 folder ke root project
+ROOT_DIR = os.path.abspath(os.path.join(BASE_DIR, ".."))
+
+print("BASE_DIR:", BASE_DIR)
+print("ROOT_DIR:", ROOT_DIR)
+
+# ============================================================
 # 1. LOAD DATASET
-# ==========================================
-df = pd.read_csv("preprocessing/processed_dataset.csv")
+# ============================================================
+dataset_path = os.path.join(ROOT_DIR, "preprocessing", "processed_dataset.csv")
+
+df = pd.read_csv(dataset_path)
 
 X = df.drop(columns="PlacementStatus")
 y = df["PlacementStatus"]
@@ -32,16 +46,17 @@ X_test_scaled = scaler.transform(X_test)
 smote_tomek = SMOTETomek(random_state=32)
 X_train_res, y_train_res = smote_tomek.fit_resample(X_train_scaled, y_train)
 
-# ==========================================
-# 2. MLflow Setup (Manual Run)
-# ==========================================
-mlflow.set_tracking_uri("file:./mlruns")  # aman di GitHub Actions
+# ============================================================
+# 2. MLflow Setup
+# ============================================================
+mlflow.set_tracking_uri("file:./mlruns")
 mlflow.set_experiment("Placement_Model_Automated")
 
-# ==========================================
+# ============================================================
 # 3. TRAINING MODEL (INSIDE MLflow RUN)
-# ==========================================
+# ============================================================
 with mlflow.start_run():
+
     model_rf = RandomForestClassifier(
         n_estimators=300,
         max_depth=7,
@@ -53,23 +68,22 @@ with mlflow.start_run():
         random_state=42
     )
 
-    # Train model
+    # Training
     model_rf.fit(X_train_res, y_train_res)
     pred = model_rf.predict(X_test_scaled)
 
-    # ==========================================
+    # ========================================================
     # 4. EVALUATION
-    # ==========================================
+    # ========================================================
     acc = accuracy_score(y_test, pred)
     print("Accuracy:", acc)
     print(classification_report(y_test, pred))
 
     mlflow.log_metric("accuracy", acc)
 
-    # ------------------------------------------
     # Confusion Matrix
-    # ------------------------------------------
     cm = confusion_matrix(y_test, pred)
+
     plt.figure(figsize=(7, 5))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
     plt.title("Confusion Matrix - Random Forest")
@@ -77,23 +91,24 @@ with mlflow.start_run():
     plt.ylabel("True")
     plt.tight_layout()
 
-    # ------------------------------------------
-    # SAFE folder untuk artifact (mencegah error /C:)
-    # ------------------------------------------
-    os.makedirs("artifacts", exist_ok=True)
+    # ========================================================
+    #  SAFE FOLDER ARTIFACTS (fix error /C:)
+    # ========================================================
+    artifacts_dir = os.path.join(ROOT_DIR, "artifacts")
+    os.makedirs(artifacts_dir, exist_ok=True)
 
-    cm_path = "artifacts/confusion_matrix_rf.png"
+    cm_path = os.path.join(artifacts_dir, "confusion_matrix_rf.png")
     plt.savefig(cm_path)
 
-    # Log artifact dengan aman
+    # Log artifact
     mlflow.log_artifact(cm_path)
 
-    # ==========================================
-    # 5. SAVE MODEL
-    # ==========================================
+    # ========================================================
+    # 5. SAVE ML MODEL TO MLflow
+    # ========================================================
     mlflow.sklearn.log_model(
         sk_model=model_rf,
-        artifact_path="model",
+        artifact_path="model"
     )
 
-print("Model training & logging complete.")
+print("Model training & MLflow logging complete.")
