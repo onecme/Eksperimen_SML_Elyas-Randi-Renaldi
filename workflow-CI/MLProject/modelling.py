@@ -33,17 +33,16 @@ smote_tomek = SMOTETomek(random_state=32)
 X_train_res, y_train_res = smote_tomek.fit_resample(X_train_scaled, y_train)
 
 # ==============================================
-# 2. MLflow Setup
+# 2. MLflow Setup (tanpa autolog)
 # ==============================================
 mlflow.set_tracking_uri("file:./mlruns")
 mlflow.set_experiment("Placement_Model_Automated")
-mlflow.autolog()
 
-# ==============================================
-# 3. TRAINING MODEL + MLflow RUN
-# ==============================================
 with mlflow.start_run():
 
+    # ==============================================
+    # 3. TRAINING MODEL
+    # ==============================================
     model_rf = RandomForestClassifier(
         n_estimators=300,
         max_depth=7,
@@ -65,27 +64,33 @@ with mlflow.start_run():
     print("Accuracy:", acc)
     print(classification_report(y_test, pred))
 
-    # Log manual metric
-    mlflow.log_metric("accuracy_manual", acc)
+    # Log metric manual
+    mlflow.log_metric("accuracy", acc)
 
-    # Confusion matrix
+    # ==============================================
+    # 5. CONFUSION MATRIX
+    # ==============================================
     cm = confusion_matrix(y_test, pred)
 
-    plt.figure(figsize=(7,5))
+    plt.figure(figsize=(7, 5))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
     plt.title("Confusion Matrix - Random Forest")
     plt.xlabel("Predicted")
     plt.ylabel("True")
     plt.tight_layout()
 
-    # Save confusion matrix (relative path → AMAN)
-    cm_path = "confusion_matrix_rf.png"
+    # Buat folder output lokal
+    os.makedirs("artifacts", exist_ok=True)
+
+    cm_path = "artifacts/confusion_matrix_rf.png"
     plt.savefig(cm_path)
 
-    # Log artifact safely
+    # Log ke MLflow
     mlflow.log_artifact(cm_path)
 
-    # Log model
+    # ==============================================
+    # 6. LOG MODEL 
+    # ==============================================
     mlflow.sklearn.log_model(
         sk_model=model_rf,
         artifact_path="model"
