@@ -35,11 +35,16 @@ jobs:
 
       - name: Run mlflow project
         run: |
-          mlflow run MLproject --env-manager=local
+          cd workflow-CI/MLProject
+          mlflow run . --env-manager=local -P data_path="preprocessing/processed_dataset.csv" -P target_var="PlacementStatus"
 
       - name: Get latest MLflow run_id
         run: |
-          RUN_ID=$(ls -td workflow-CI/MLProject/mlruns/*/ | grep -E '/[0-9]+/$' | head -n 1 | cut -d'/' -f3)
+          RUN_ID=$(ls -td workflow-CI/MLProject/mlruns/0/*/ 2>/dev/null | head -n 1 | xargs basename)
+          if [ -z "$RUN_ID" ]; then
+            echo "No MLflow runs found!"
+            exit 1
+          fi
           echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
           echo "Latest run_id: $RUN_ID"
 
