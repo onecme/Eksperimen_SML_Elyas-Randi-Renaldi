@@ -43,13 +43,10 @@ smote_tomek = SMOTETomek(random_state=32)
 X_train_res, y_train_res = smote_tomek.fit_resample(X_train_scaled, y_train)
 
 # ==============================================
-# 2. MLflow Setup - DISABLE autolog untuk compatibility
+# 2. MLflow Setup - Use existing run from MLflow Project
 # ==============================================
-mlflow.set_tracking_uri("file:./mlruns")
-mlflow.set_experiment("Placement_Model_Automated")
-
-# JANGAN gunakan autolog() karena conflict dengan MLflow Project
-# mlflow.autolog()
+# JANGAN set tracking URI atau experiment - biarkan MLflow Project yang handle
+# JANGAN gunakan autolog() - manual logging saja
 
 # ==============================================
 # 3. TRAINING MODEL
@@ -70,54 +67,62 @@ model_rf.fit(X_train_res, y_train_res)
 pred = model_rf.predict(X_test_scaled)
 
 # ==============================================
-# 4. EVALUASI
+# 4. EVALUASI & LOGGING
 # ==============================================
 acc = accuracy_score(y_test, pred)
 print(f"Accuracy: {acc}")
 print(classification_report(y_test, pred))
 
-# Log metrics
-mlflow.log_metric("accuracy", acc)
-mlflow.log_param("n_estimators", 300)
-mlflow.log_param("max_depth", 7)
-mlflow.log_param("min_samples_split", 5)
-mlflow.log_param("min_samples_leaf", 3)
-
-# Confusion Matrix
-cm = confusion_matrix(y_test, pred)
-plt.figure(figsize=(7, 5))
-sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
-plt.title("Confusion Matrix - Random Forest")
-plt.xlabel("Predicted")
-plt.ylabel("True")
-plt.tight_layout()
-
-# Save Confusion Matrix dengan path yang aman
-cm_path = os.path.join(os.getcwd(), "confusion_matrix_rf.png")
-print(f"Saving confusion matrix to: {cm_path}")
-plt.savefig(cm_path)
-plt.close()
-
-# Log artifact to MLflow
-try:
-    mlflow.log_artifact(cm_path)
-    print(f"Successfully logged artifact: {cm_path}")
+# Get the active run created by MLflow Project
+active_run = mlflow.active_run()
+if active_run:
+    print(f"Using active run: {active_run.info.run_id}")
     
-    # Clean up file setelah di-log
-    if os.path.exists(cm_path):
-        os.remove(cm_path)
-        print(f"Cleaned up temporary file: {cm_path}")
-except Exception as e:
-    print(f"Warning: Could not log artifact: {e}")
-
-# ==============================================
-# 5. LOG MODEL 
-# ==============================================
-print("Logging model to MLflow...")
-mlflow.sklearn.log_model(
-    sk_model=model_rf,
-    artifact_path="model",
-    registered_model_name="RandomForest_Placement_Model"
-)
-
-print("Training completed successfully!")
+    # Log metrics
+    mlflow.log_metric("accuracy", acc)
+    mlflow.log_param("n_estimators", 300)
+    mlflow.log_param("max_depth", 7)
+    mlflow.log_param("min_samples_split", 5)
+    mlflow.log_param("min_samples_leaf", 3)
+    
+    # Confusion Matrix
+    cm = confusion_matrix(y_test, pred)
+    plt.figure(figsize=(7, 5))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+    plt.title("Confusion Matrix - Random Forest")
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+    plt.tight_layout()
+    
+    # Save Confusion Matrix dengan path yang aman
+    cm_path = os.path.join(os.getcwd(), "confusion_matrix_rf.png")
+    print(f"Saving confusion matrix to: {cm_path}")
+    plt.savefig(cm_path)
+    plt.close()
+    
+    # Log artifact to MLflow
+    try:
+        mlflow.log_artifact(cm_path)
+        print(f"Successfully logged artifact: {cm_path}")
+        
+        # Clean up file setelah di-log
+        if os.path.exists(cm_path):
+            os.remove(cm_path)
+            print(f"Cleaned up temporary file: {cm_path}")
+    except Exception as e:
+        print(f"Warning: Could not log artifact: {e}")
+    
+    # ==============================================
+    # 5. LOG MODEL 
+    # ==============================================
+    print("Logging model to MLflow...")
+    mlflow.sklearn.log_model(
+        sk_model=model_rf,
+        artifact_path="model",
+        registered_model_name="RandomForest_Placement_Model"
+    )
+    
+    print("Training completed successfully!")
+else:
+    print("Warning: No active MLflow run found. Metrics will not be logged.")
+    print(f"Model accuracy: {acc}")
