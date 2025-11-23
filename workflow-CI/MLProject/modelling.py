@@ -43,14 +43,9 @@ smote_tomek = SMOTETomek(random_state=32)
 X_train_res, y_train_res = smote_tomek.fit_resample(X_train_scaled, y_train)
 
 # ==============================================
-# 2. MLflow Setup - Use existing run from MLflow Project
+# 2. TRAINING MODEL
 # ==============================================
-# JANGAN set tracking URI atau experiment - biarkan MLflow Project yang handle
-# JANGAN gunakan autolog() - manual logging saja
-
-# ==============================================
-# 3. TRAINING MODEL
-# ==============================================
+print("Training model...")
 model_rf = RandomForestClassifier(
     n_estimators=300,
     max_depth=7,
@@ -62,67 +57,74 @@ model_rf = RandomForestClassifier(
     random_state=42
 )
 
-print("Training model...")
 model_rf.fit(X_train_res, y_train_res)
 pred = model_rf.predict(X_test_scaled)
 
 # ==============================================
-# 4. EVALUASI & LOGGING
+# 3. EVALUASI
 # ==============================================
 acc = accuracy_score(y_test, pred)
 print(f"Accuracy: {acc}")
 print(classification_report(y_test, pred))
 
-# Get the active run created by MLflow Project
-active_run = mlflow.active_run()
-if active_run:
-    print(f"Using active run: {active_run.info.run_id}")
-    
-    # Log metrics
-    mlflow.log_metric("accuracy", acc)
-    mlflow.log_param("n_estimators", 300)
-    mlflow.log_param("max_depth", 7)
-    mlflow.log_param("min_samples_split", 5)
-    mlflow.log_param("min_samples_leaf", 3)
-    
-    # Confusion Matrix
-    cm = confusion_matrix(y_test, pred)
-    plt.figure(figsize=(7, 5))
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
-    plt.title("Confusion Matrix - Random Forest")
-    plt.xlabel("Predicted")
-    plt.ylabel("True")
-    plt.tight_layout()
-    
-    # Save Confusion Matrix dengan path yang aman
-    cm_path = os.path.join(os.getcwd(), "confusion_matrix_rf.png")
-    print(f"Saving confusion matrix to: {cm_path}")
-    plt.savefig(cm_path)
-    plt.close()
-    
-    # Log artifact to MLflow
-    try:
-        mlflow.log_artifact(cm_path)
-        print(f"Successfully logged artifact: {cm_path}")
-        
-        # Clean up file setelah di-log
-        if os.path.exists(cm_path):
-            os.remove(cm_path)
-            print(f"Cleaned up temporary file: {cm_path}")
-    except Exception as e:
-        print(f"Warning: Could not log artifact: {e}")
-    
-    # ==============================================
-    # 5. LOG MODEL 
-    # ==============================================
-    print("Logging model to MLflow...")
+# ==============================================
+# 4. MLFLOW LOGGING - Langsung log tanpa check active_run
+# ==============================================
+print("Logging to MLflow...")
+
+# Log parameters
+mlflow.log_param("n_estimators", 300)
+mlflow.log_param("max_depth", 7)
+mlflow.log_param("min_samples_split", 5)
+mlflow.log_param("min_samples_leaf", 3)
+mlflow.log_param("max_features", "sqrt")
+mlflow.log_param("class_weight", "balanced")
+
+# Log metrics
+mlflow.log_metric("accuracy", acc)
+
+# Confusion Matrix
+print("Creating confusion matrix...")
+cm = confusion_matrix(y_test, pred)
+plt.figure(figsize=(7, 5))
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+plt.title("Confusion Matrix - Random Forest")
+plt.xlabel("Predicted")
+plt.ylabel("True")
+plt.tight_layout()
+
+# Save Confusion Matrix
+cm_path = "confusion_matrix_rf.png"
+plt.savefig(cm_path)
+plt.close()
+print(f"Confusion matrix saved to: {cm_path}")
+
+# Log artifact
+try:
+    mlflow.log_artifact(cm_path)
+    print("Confusion matrix logged to MLflow")
+    # Clean up
+    if os.path.exists(cm_path):
+        os.remove(cm_path)
+except Exception as e:
+    print(f"Warning: Could not log confusion matrix: {e}")
+
+# ==============================================
+# 5. LOG MODEL 
+# ==============================================
+print("Logging model to MLflow...")
+try:
     mlflow.sklearn.log_model(
         sk_model=model_rf,
         artifact_path="model",
         registered_model_name="RandomForest_Placement_Model"
     )
-    
-    print("Training completed successfully!")
-else:
-    print("Warning: No active MLflow run found. Metrics will not be logged.")
-    print(f"Model accuracy: {acc}")
+    print("Model successfully logged to MLflow")
+except Exception as e:
+    print(f"ERROR: Failed to log model: {e}")
+    raise
+
+print("=" * 50)
+print("Training completed successfully!")
+print(f"Final Accuracy: {acc:.4f}")
+print("=" * 50)
