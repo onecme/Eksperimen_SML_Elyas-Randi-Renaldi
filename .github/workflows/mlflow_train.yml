@@ -35,18 +35,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r workflow-CI/MLProject/requirements.txt
 
-      - name: Clean and Setup MLflow Environment
+      - name: Setup MLflow Environment
         run: |
           cd workflow-CI/MLProject
-          # Remove ALL old mlruns to avoid Windows path issues
-          rm -rf mlruns .mlruns
-          # Create fresh mlruns directory structure
-          mkdir -p mlruns/0
-          echo "MLflow directory cleaned and recreated"
           
-          # Also clear any cached MLflow metadata
-          rm -rf ~/.mlflow
-          echo "MLflow cache cleared"
+          # Initialize MLflow tracking directory if not exists
+          if [ ! -d "mlruns" ]; then
+            echo "Initializing MLflow tracking directory..."
+            python -c "
+import mlflow
+mlflow.set_tracking_uri('file:./mlruns')
+mlflow.create_experiment('Default', artifact_location='file:./mlruns/0')
+"
+          fi
+          
+          echo "MLflow environment ready"
+          ls -la mlruns/ || echo "mlruns not found, will be created by MLflow"
 
       - name: Run mlflow project
         run: |

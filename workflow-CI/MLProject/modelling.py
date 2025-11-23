@@ -76,7 +76,7 @@ model_rf = RandomForestClassifier(
 
 model_rf.fit(X_train_res, y_train_res)
 pred = model_rf.predict(X_test_scaled)
-print(" Model training completed")
+print("Model training completed")
 
 # ==============================================
 # 3. EVALUASI
@@ -102,13 +102,13 @@ mlflow.log_param("max_features", "sqrt")
 mlflow.log_param("class_weight", "balanced")
 mlflow.log_param("test_size", 0.2)
 mlflow.log_param("resampling", "SMOTETomek")
-print(" Parameters logged")
+print("Parameters logged")
 
 # Log metrics
 mlflow.log_metric("accuracy", acc)
 mlflow.log_metric("training_samples", len(X_train_res))
 mlflow.log_metric("test_samples", len(X_test))
-print(" Metrics logged")
+print("Metrics logged")
 
 # ==============================================
 # 5. CONFUSION MATRIX
@@ -126,12 +126,12 @@ plt.tight_layout()
 cm_path = os.path.join(os.getcwd(), "confusion_matrix_rf.png")
 plt.savefig(cm_path)
 plt.close()
-print(f" Confusion matrix saved to: {cm_path}")
+print(f"Confusion matrix saved to: {cm_path}")
 
 # Log artifact
 try:
     mlflow.log_artifact(cm_path)
-    print(" Confusion matrix logged to MLflow")
+    print("Confusion matrix logged to MLflow")
     # Clean up
     if os.path.exists(cm_path):
         os.remove(cm_path)
