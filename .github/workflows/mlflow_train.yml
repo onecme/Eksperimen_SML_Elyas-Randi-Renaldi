@@ -38,12 +38,13 @@ jobs:
       - name: Setup MLflow Environment
         run: |
           cd workflow-CI/MLProject
-          if [ ! -d "mlruns" ]; then
-            echo "Initializing MLflow tracking directory..."
-            python -c "import mlflow; mlflow.set_tracking_uri('file:./mlruns'); mlflow.create_experiment('Default', artifact_location='file:./mlruns/0')"
-          fi
-          echo "MLflow environment ready"
-          ls -la mlruns/ || echo "mlruns not found, will be created by MLflow"
+          
+          # FORCE delete any existing mlruns (might have Windows paths from git)
+          rm -rf mlruns .mlruns mlartifacts
+          echo "Cleaned old MLflow directories"
+          
+          # Let MLflow create fresh structure
+          echo "MLflow will create fresh tracking directory"
 
       - name: Run mlflow project
         run: |
