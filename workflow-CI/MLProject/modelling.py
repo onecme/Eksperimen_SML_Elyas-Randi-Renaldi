@@ -8,22 +8,11 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from imblearn.combine import SMOTETomek
 import matplotlib.pyplot as plt
 import seaborn as sns
-import os
 
-# ============================================================
-# 0. PATH FIX untuk GitHub Actions
-# ============================================================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-print("BASE_DIR:", BASE_DIR)
-
-# File dataset berada di folder yang sama dengan modelling.py → preprocessing/
-dataset_path = os.path.join(BASE_DIR, "preprocessing", "processed_dataset.csv")
-print("DATASET PATH:", dataset_path)
-
-# ============================================================
+# ==============================================
 # 1. LOAD DATASET
-# ============================================================
-df = pd.read_csv(dataset_path)
+# ==============================================
+df = pd.read_csv("preprocessing/processed_dataset.csv")
 
 X = df.drop(columns="PlacementStatus")
 y = df["PlacementStatus"]
@@ -38,78 +27,64 @@ scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
-# Resampling untuk handling imbalance
+# Resampling
 smote_tomek = SMOTETomek(random_state=32)
 X_train_res, y_train_res = smote_tomek.fit_resample(X_train_scaled, y_train)
 
-# ============================================================
-# 2. MLflow Setup - FIXED untuk Linux/GitHub Actions
-# ============================================================
-# Gunakan path relatif yang aman untuk Linux
-mlruns_dir = os.path.join(BASE_DIR, "mlruns")
-os.makedirs(mlruns_dir, exist_ok=True)
-
-# Set tracking URI dengan format yang benar
-mlflow.set_tracking_uri(f"file:{os.path.abspath(mlruns_dir)}")
+# ==============================================
+# 2. MLflow Setup → TANPA start_run()
+# ==============================================
+mlflow.set_tracking_uri("file:./mlruns")
 mlflow.set_experiment("Placement_Model_Automated")
+mlflow.autolog()   # Biarkan MLflow Project yang membuat run
 
-# Buat folder artifacts untuk menyimpan gambar
-artifacts_dir = os.path.join(BASE_DIR, "artifacts")
-os.makedirs(artifacts_dir, exist_ok=True)
-
-# ============================================================
+# ==============================================
 # 3. TRAINING MODEL
-# ============================================================
-with mlflow.start_run():
+# ==============================================
+model_rf = RandomForestClassifier(
+    n_estimators=300,
+    max_depth=7,
+    min_samples_split=5,
+    min_samples_leaf=3,
+    max_features='sqrt',
+    class_weight='balanced',
+    bootstrap=True,
+    random_state=42
+)
 
-    model_rf = RandomForestClassifier(
-        n_estimators=300,
-        max_depth=7,
-        min_samples_split=5,
-        min_samples_leaf=3,
-        max_features='sqrt',
-        class_weight='balanced',
-        bootstrap=True,
-        random_state=42
-    )
+model_rf.fit(X_train_res, y_train_res)
+pred = model_rf.predict(X_test_scaled)
 
-    # Train the model
-    model_rf.fit(X_train_res, y_train_res)
-    pred = model_rf.predict(X_test_scaled)
+# ==============================================
+# 4. EVALUASI
+# ==============================================
+acc = accuracy_score(y_test, pred)
+print("Accuracy:", acc)
+print(classification_report(y_test, pred))
 
-    # ============================================================
-    # 4. EVALUATION
-    # ============================================================
-    acc = accuracy_score(y_test, pred)
-    print("Accuracy:", acc)
-    print(classification_report(y_test, pred))
+# Log metric manual (opsional)
+mlflow.log_metric("accuracy_manual", acc)
 
-    mlflow.log_metric("accuracy", acc)
+# Confusion Matrix
+cm = confusion_matrix(y_test, pred)
+plt.figure(figsize=(7,5))
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+plt.title("Confusion Matrix - Random Forest")
+plt.xlabel("Predicted")
+plt.ylabel("True")
+plt.tight_layout()
 
-    # Confusion Matrix
-    cm = confusion_matrix(y_test, pred)
+# Save Confusion Matrix
+cm_path = "confusion_matrix_rf.png"
+plt.savefig(cm_path)
 
-    plt.figure(figsize=(7, 5))
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
-    plt.title("Confusion Matrix - Random Forest")
-    plt.xlabel("Predicted")
-    plt.ylabel("True")
-    plt.tight_layout()
+# Log artifact to MLflow
+mlflow.log_artifact(cm_path)
 
-    # Save confusion matrix image dengan path yang aman
-    cm_path = os.path.join(artifacts_dir, "confusion_matrix_rf.png")
-    plt.savefig(cm_path)
-    plt.close()  # Tambahkan ini untuk menutup figure
-
-    # Log artifact to MLflow
-    mlflow.log_artifact(cm_path)
-
-    # ============================================================
-    # 5. SAVE MODEL
-    # ============================================================
-    mlflow.sklearn.log_model(
-        sk_model=model_rf,
-        artifact_path="model"
-    )
-
-print("Model training & MLflow logging complete.")
+# ==============================================
+# 5. LOG MODEL 
+# ==============================================
+mlflow.sklearn.log_model(
+    sk_model=model_rf,
+    artifact_path="model"
+)

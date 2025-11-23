@@ -1,33 +1,60 @@
-name: Train ML Model
-
+name: CI/CD MLflow
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+env:
+  CSV_URL: "workflow-CI/MLProject/preprocessing/processed_dataset.csv"
+  TARGET_VAR: "PlacementStatus"
 
 jobs:
-  train-model:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
+      # Checks-out your repository under $GITHUB_WORKSPACE
+      - uses: actions/checkout@v3
 
-      - name: Setup Python
+      # Setup Python 3.12.7
+      - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
-      - name: Install Dependencies
+- name: Check Env
         run: |
-          pip install -r workflow-CI/MLProject/requirements.txt
+          echo $CSV_URL
 
-      - name: Run Model Training
+- name: Install dependencies
         run: |
-          python workflow-CI/MLProject/modelling.py
+          python -m pip install --upgrade pip
+          pip install mlflow 
 
-      - name: Upload Model Artifact
-        uses: actions/upload-artifact@v4
+- name: Run mlflow project
+        run: |
+          mlflow run MLproject --env-manager=local
+
+- name: Get latest MLflow run_id
+        run: |
+          RUN_ID=$(ls -td workflow-CI/MLProject/mlruns/*/ | grep -E '/[0-9]+/$' | head -n 1 | cut -d'/' -f3)
+          echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+          echo "Latest run_id: $RUN_ID"
+
+- name: Build Docker Model
+        run: |
+          mlflow models build-docker --model-uri "runs:/$RUN_ID/model" --name "cc"
+
+- name: Log in to Docker Hub
+        uses: docker/login-action@v2
         with:
-          name: trained-model
-          path: workflow-CI/MLProject/mlruns
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+- name: Tag Docker Image
+        run: |
+          docker tag cc ${{ secrets.DOCKER_HUB_USERNAME }}/cc:latest
+    
+    
