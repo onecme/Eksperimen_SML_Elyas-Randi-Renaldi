@@ -29,6 +29,10 @@ mlflow_tracking_uri = f"file:{os.path.abspath('./mlruns')}"
 mlflow.set_tracking_uri(mlflow_tracking_uri)
 print(f"MLflow tracking URI: {mlflow.get_tracking_uri()}")
 
+# CRITICAL: Set artifact location explicitly
+os.environ['MLFLOW_ARTIFACT_ROOT'] = os.path.abspath('./mlruns')
+print(f"MLflow artifact root: {os.environ.get('MLFLOW_ARTIFACT_ROOT')}")
+
 # ==============================================
 # 1. LOAD DATASET
 # ==============================================
@@ -72,7 +76,7 @@ model_rf = RandomForestClassifier(
 
 model_rf.fit(X_train_res, y_train_res)
 pred = model_rf.predict(X_test_scaled)
-print("Model training completed")
+print(" Model training completed")
 
 # ==============================================
 # 3. EVALUASI
@@ -98,13 +102,13 @@ mlflow.log_param("max_features", "sqrt")
 mlflow.log_param("class_weight", "balanced")
 mlflow.log_param("test_size", 0.2)
 mlflow.log_param("resampling", "SMOTETomek")
-print("Parameters logged")
+print(" Parameters logged")
 
 # Log metrics
 mlflow.log_metric("accuracy", acc)
 mlflow.log_metric("training_samples", len(X_train_res))
 mlflow.log_metric("test_samples", len(X_test))
-print("Metrics logged")
+print(" Metrics logged")
 
 # ==============================================
 # 5. CONFUSION MATRIX
@@ -122,28 +126,29 @@ plt.tight_layout()
 cm_path = os.path.join(os.getcwd(), "confusion_matrix_rf.png")
 plt.savefig(cm_path)
 plt.close()
-print(f"Confusion matrix saved to: {cm_path}")
+print(f" Confusion matrix saved to: {cm_path}")
 
 # Log artifact
 try:
     mlflow.log_artifact(cm_path)
-    print("Confusion matrix logged to MLflow")
+    print(" Confusion matrix logged to MLflow")
     # Clean up
     if os.path.exists(cm_path):
         os.remove(cm_path)
         print("Temporary file cleaned up")
 except Exception as e:
-    print(f"arning: Could not log confusion matrix: {e}")
+    print(f"Warning: Could not log confusion matrix: {e}")
 
 # ==============================================
 # 6. LOG MODEL - MOST IMPORTANT!
 # ==============================================
 print("\nLogging model to MLflow...")
 try:
+    # Log model WITHOUT registered_model_name to avoid registry issues
     mlflow.sklearn.log_model(
         sk_model=model_rf,
-        artifact_path="model",
-        registered_model_name="RandomForest_Placement_Model"
+        artifact_path="model"
+        # Removed: registered_model_name="RandomForest_Placement_Model"
     )
     print("Model successfully logged to MLflow!")
 except Exception as e:
