@@ -72,31 +72,31 @@ jobs:
             ls -la mlruns/0/$RUN_ID/artifacts/ || echo "Artifacts directory not found"
             exit 1
           fi
-          echo "✓ Model found at: $MODEL_PATH"
+          echo "Model found at: $MODEL_PATH"
           
           ABS_MODEL_PATH="$GITHUB_WORKSPACE/workflow-CI/MLProject/$MODEL_PATH"
           echo "MODEL_PATH=$ABS_MODEL_PATH" >> $GITHUB_ENV
           echo "Absolute model path: $ABS_MODEL_PATH"
 
       - name: Build Docker Model (Optional - commented out due to Java dependency issues)
-        if: false  # Disable for now
+        if: false  
         run: |
           mlflow models build-docker --model-uri "file://$MODEL_PATH" --name "cc"
 
       - name: Log in to Docker Hub (Optional)
-        if: false  # Disable for now
+        if: false  
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Tag Docker Image (Optional)
-        if: false  # Disable for now
+        if: false  
         run: |
           docker tag cc ${{ secrets.DOCKER_HUB_USERNAME }}/cc:latest
 
       - name: Push Docker Image (Optional)
-        if: false  # Disable for now
+        if: false  
         run: |
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/cc:latest
       

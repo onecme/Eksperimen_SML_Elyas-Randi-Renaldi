@@ -32,16 +32,12 @@ X_test_scaled = scaler.transform(X_test)
 smote_tomek = SMOTETomek(random_state=32)
 X_train_res, y_train_res = smote_tomek.fit_resample(X_train_scaled, y_train)
 
-# ==============================================
-# 2. MLflow Auto Logging
-# ==============================================
-mlflow.set_tracking_uri("file:./mlruns")   # Simpan lokal
-mlflow.set_experiment("Placement_Model_Automated")
+mlflow.set_tracking_uri("http://127.0.0.1:5000/")
+mlflow.set_experiment("Placement_Modelling.py")
 
-mlflow.sklearn.autolog()  # ← syarat Basic
+mlflow.sklearn.autolog()
 
-with mlflow.start_run():
-
+with mlflow.start_run(run_name="RF_Basic") as run:
     # MODEL
     model_rf = RandomForestClassifier(
         n_estimators=300,
@@ -71,7 +67,16 @@ with mlflow.start_run():
     plt.ylabel("True")
     plt.tight_layout()
 
-    # Simpan Confusion Matrix ke folder artifacts run
+    # Simpan Confusion Matrix
     cm_path = "confusion_matrix_rf.png"
     plt.savefig(cm_path)
     mlflow.log_artifact(cm_path)
+    plt.close()
+    
+    # Cetak informasi run
+    print(f"\n{'='*50}")
+    print(f"Run ID: {run.info.run_id}")
+    print(f"Artifact URI: {run.info.artifact_uri}")
+    print(f"{'='*50}\n")
+    print("Model dan artifacts berhasil disimpan!")
+    print(f"Cek folder: mlruns/{run.info.experiment_id}/{run.info.run_id}/artifacts/model/")

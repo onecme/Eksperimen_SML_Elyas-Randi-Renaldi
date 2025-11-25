@@ -21,9 +21,7 @@ print(f"Loading data from: {data_path}")
 print(f"Target variable: {target_var}")
 print(f"Current working directory: {os.getcwd()}")
 
-# ==============================================
-# 0.1. CONFIGURE MLFLOW - CRITICAL FIX!
-# ==============================================
+
 # Set tracking URI ke relative path untuk menghindari Windows path issue
 mlflow_tracking_uri = f"file:{os.path.abspath('./mlruns')}"
 mlflow.set_tracking_uri(mlflow_tracking_uri)
@@ -33,9 +31,7 @@ print(f"MLflow tracking URI: {mlflow.get_tracking_uri()}")
 os.environ['MLFLOW_ARTIFACT_ROOT'] = os.path.abspath('./mlruns')
 print(f"MLflow artifact root: {os.environ.get('MLFLOW_ARTIFACT_ROOT')}")
 
-# ==============================================
-# 1. LOAD DATASET
-# ==============================================
+
 print("Loading dataset...")
 df = pd.read_csv(data_path)
 print(f"Dataset shape: {df.shape}")
@@ -59,9 +55,7 @@ smote_tomek = SMOTETomek(random_state=32)
 X_train_res, y_train_res = smote_tomek.fit_resample(X_train_scaled, y_train)
 print(f"Resampled training set shape: {X_train_res.shape}")
 
-# ==============================================
-# 2. TRAINING MODEL
-# ==============================================
+
 print("Training Random Forest model...")
 model_rf = RandomForestClassifier(
     n_estimators=300,
@@ -78,17 +72,13 @@ model_rf.fit(X_train_res, y_train_res)
 pred = model_rf.predict(X_test_scaled)
 print("Model training completed")
 
-# ==============================================
-# 3. EVALUASI
-# ==============================================
+
 acc = accuracy_score(y_test, pred)
 print(f"\nAccuracy: {acc:.4f}")
 print("\nClassification Report:")
 print(classification_report(y_test, pred))
 
-# ==============================================
-# 4. MLFLOW LOGGING
-# ==============================================
+
 print("\n" + "="*50)
 print("Logging to MLflow...")
 print("="*50)
@@ -110,9 +100,7 @@ mlflow.log_metric("training_samples", len(X_train_res))
 mlflow.log_metric("test_samples", len(X_test))
 print("Metrics logged")
 
-# ==============================================
-# 5. CONFUSION MATRIX
-# ==============================================
+
 print("\nCreating confusion matrix...")
 cm = confusion_matrix(y_test, pred)
 plt.figure(figsize=(7, 5))
@@ -139,9 +127,7 @@ try:
 except Exception as e:
     print(f"Warning: Could not log confusion matrix: {e}")
 
-# ==============================================
-# 6. LOG MODEL - MOST IMPORTANT!
-# ==============================================
+
 print("\nLogging model to MLflow...")
 try:
     # Log model WITHOUT registered_model_name to avoid registry issues
@@ -157,9 +143,6 @@ except Exception as e:
     traceback.print_exc()
     raise
 
-# ==============================================
-# 7. SUMMARY
-# ==============================================
 print("\n" + "="*50)
 print("TRAINING COMPLETED SUCCESSFULLY!")
 print("="*50)
