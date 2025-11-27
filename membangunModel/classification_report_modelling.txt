@@ -1,0 +1,26 @@
+============================================================
+CLASSIFICATION REPORT - Random Forest
+============================================================
+
+TRAINING METRICS:
+  Accuracy:  0.8700
+  Precision: 0.8700
+  Recall:    0.8700
+  F1-Score:  0.8700
+
+TEST METRICS:
+  Accuracy:  0.8308
+  Precision: 0.8314
+  Recall:    0.8308
+  F1-Score:  0.8307
+
+============================================================
+
+              precision    recall  f1-score   support
+
+           0       0.82      0.85      0.83       843
+           1       0.85      0.81      0.83       859
+
+    accuracy                           0.83      1702
+   macro avg       0.83      0.83      0.83      1702
+weighted avg       0.83      0.83      0.83      1702

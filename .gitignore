@@ -56,3 +56,6 @@ Thumbs.db
 *.log
 *.tmp
 confusion_matrix*.png
+
+Monitoring-dan-Logging/prometheus.exe
+Monitoring-dan-Logging/data/

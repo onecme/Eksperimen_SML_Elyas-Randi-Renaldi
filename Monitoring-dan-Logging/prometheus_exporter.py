@@ -1,60 +1,47 @@
-from prometheus_client import start_http_server, Counter, Gauge, Histogram
-from time import time, sleep
-import psutil
-import random
+from flask import Flask, request, jsonify, Response
+import requests
+import time
+import psutil # Untuk monitoring sistem
+from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
-# Metrik dasar
-total_requests = Counter("requests_total", "Total inference requests")
-success_requests = Counter("requests_success", "Successful inference requests")
-failed_requests = Counter("requests_failed", "Failed inference requests")
+app = Flask(__name__)
 
-# Metrik waktu inferensi
-inference_time = Histogram("inference_time_seconds", "Time spent for inference")
+# Metrik untuk API model
+REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP Requests') # Total request yang diterima
+REQUEST_LATENCY = Histogram('http_request_duration_seconds', 'HTTP Request Latency') # Waktu respons API
+THROUGHPUT = Counter('http_requests_throughput', 'Total number of requests per second') # Throughput
 
-# Metrik monitoring sistem
-cpu_usage = Gauge("cpu_usage_percent", "CPU usage percentage")
-memory_usage = Gauge("memory_usage_percent", "Memory usage percentage")
+# Metrik untuk sistem
+CPU_USAGE = Gauge('system_cpu_usage', 'CPU Usage Percentage') # Penggunaan CPU
+RAM_USAGE = Gauge('system_ram_usage', 'RAM Usage Percentage') # Penggunaan RAM
 
-# Metrik input
-input_mean = Gauge("input_mean", "Mean value of input features")
-input_std = Gauge("input_std", "Std dev of input features")
+# Endpoint untuk Prometheus
+@app.route('/metrics', methods=['GET'])
+def metrics():
+    # Update metrik sistem setiap kali /metrics diakses
+    CPU_USAGE.set(psutil.cpu_percent(interval=1)) # Ambil data CPU usage (persentase)
+    RAM_USAGE.set(psutil.virtual_memory().percent) # Ambil data RAM usage (persentase)
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
-# Metrik output
-prediction_output = Gauge("prediction_output", "Last prediction output")
+# Endpoint untuk mengakses API model dan mencatat metrik
+@app.route('/predict', methods=['POST'])
+def predict():
+    start_time = time.time()
+    REQUEST_COUNT.inc() # Tambah jumlah request
+    THROUGHPUT.inc() # Tambah throughput (request per detik)
+    
+    # Kirim request ke API model
+    api_url = "http://127.0.0.1:5001/invocations"
+    data = request.get_json()
 
-# Metrik manual — akurasi model dari training
-model_accuracy = Gauge("model_accuracy", "Model accuracy score")
-model_accuracy.set(0.83)  # isi sesuai hasil modelling.py Anda
+    try:
+        response = requests.post(api_url, json=data)
+        duration = time.time() - start_time
+        REQUEST_LATENCY.observe(duration) # Catat latensi
 
+        return jsonify(response.json())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-def simulate_prediction():
-    total_requests.inc()
-
-    # simulasi input
-    x = [random.random() for _ in range(5)]
-    input_mean.set(sum(x)/len(x))
-    input_std.set((sum((i - input_mean._value.get())**2 for i in x)/len(x))**0.5)
-
-    start = time()
-    sleep(0.2)  # simulasi inferensi
-    pred = random.choice([0, 1])
-    prediction_output.set(pred)
-
-    # success
-    success_requests.inc()
-
-    # waktu inferensi
-    inference_time.observe(time() - start)
-
-    # Update sistem
-    cpu_usage.set(psutil.cpu_percent())
-    memory_usage.set(psutil.virtual_memory().percent)
-
-
-if __name__ == "__main__":
-    print("Prometheus Exporter running at :8000")
-    start_http_server(8000)
-
-    while True:
-        simulate_prediction()
-        sleep(2)
+if __name__ == '__main__':
+    app.run(host='127.0.0.1', port=8000)
